@@ -1,5 +1,8 @@
-Base mod:
-Ground types harvest archeology related items
-
-Integration:
--
+1.1.0
+- Ported the team preview from the Fabric-only version to Fabric + NeoForge.
+- Updated to Cobblemon 1.8.1, Kotlin 2.2.20, Fabric Loader 0.17.2 and NeoForge 21.1.182.
+- Switched to Mojang mappings and the cobblemon-contenders build setup.
+- Timers now run on the server tick instead of a background thread.
+- Battles are started through Cobblemon's battle builder (respects level-adjusted formats and validations).
+- Previews are cancelled when a player disconnects.
+- Added Spanish translation.
