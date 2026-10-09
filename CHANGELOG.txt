@@ -6,3 +6,9 @@
 - Battles are started through Cobblemon's battle builder (respects level-adjusted formats and validations).
 - Previews are cancelled when a player disconnects.
 - Added Spanish translation.
+- The rival only receives the data shown in the preview (no moves, IVs, EVs, nature, ability or held item).
+- Teams without any usable Pokémon skip the preview so Cobblemon reports the error right away.
+- Only the left mouse button selects a lead.
+- Other tiles no longer look clickable once a lead is chosen, and the selection survives resizing the window.
+- Running out of time now cancels the battle (the message no longer claims a forfeit).
+- Previews are cancelled when a player dies, and players are looked up by UUID when the battle starts.

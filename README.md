@@ -14,7 +14,8 @@ A Cobblemon addon that adds a **team preview** to PvP battles: before the battle
 - **Team preview screen**: your team on the left, your rival's team on the right.
 - **Lead selection**: click a Pokémon to send it out first.
 - **Timers**: 30 seconds to choose, then a 5 second countdown before the battle starts.
-- **Forfeit on timeout**: if only one player chose in time, the other one forfeits. If nobody chose, the battle is cancelled.
+- **Timeout**: if a player does not choose in time, the battle is cancelled. It is also cancelled if a player disconnects or dies.
+- **Hidden information**: the rival only receives what the preview shows (species, level, HP, status). Moves, IVs, EVs, nature, ability and held item stay hidden.
 - **Level-adjusted formats**: the preview shows the levels and HP the battle will actually use.
 - **Multiplatform**: Fabric and NeoForge from a single codebase.
 - Currently enabled for **singles** battles only.
