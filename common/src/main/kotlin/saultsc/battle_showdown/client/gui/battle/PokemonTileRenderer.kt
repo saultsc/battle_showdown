@@ -4,7 +4,6 @@ import com.cobblemon.mod.common.api.gui.blitk
 import com.cobblemon.mod.common.api.text.bold
 import com.cobblemon.mod.common.api.text.font
 import com.cobblemon.mod.common.api.text.text
-import com.cobblemon.mod.common.battles.ShowdownPokemon
 import com.cobblemon.mod.common.client.CobblemonResources
 import com.cobblemon.mod.common.client.gui.drawProfilePokemon
 import com.cobblemon.mod.common.client.render.drawScaledText
@@ -12,7 +11,6 @@ import com.cobblemon.mod.common.client.render.getDepletableRedGreen
 import com.cobblemon.mod.common.client.render.models.blockbench.FloatingState
 import com.cobblemon.mod.common.client.render.renderScaledGuiItemIcon
 import com.cobblemon.mod.common.pokemon.Gender
-import com.cobblemon.mod.common.pokemon.Pokemon
 import com.cobblemon.mod.common.util.cobblemonResource
 import com.cobblemon.mod.common.util.lang
 import com.cobblemon.mod.common.util.math.fromEulerXYZDegrees
@@ -20,6 +18,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphics
 import org.joml.Quaternionf
 import org.joml.Vector3f
+import saultsc.battle_showdown.battle.PreviewPokemon
 
 /**
  * Draws the content of a team preview tile (model, level, name, gender, status, ball, HP bar).
@@ -37,35 +36,23 @@ object PokemonTileRenderer {
     val tileTexture = cobblemonResource("textures/gui/battle/party_select.png")
     val tileDisabledTexture = cobblemonResource("textures/gui/battle/party_select_disabled.png")
 
-    class Health(val hp: Int, val maxHp: Int) {
-        val ratio: Float = if (maxHp > 0) hp / maxHp.toFloat() else 0F
-    }
-
-    fun health(pokemon: Pokemon, showdownPokemon: ShowdownPokemon): Health {
-        val healthRatioSplits = showdownPokemon.condition.split(" ")[0].split("/")
-        return if (healthRatioSplits.size == 1) Health(0, 0)
-        else Health(healthRatioSplits[0].toInt(), pokemon.maxHealth)
-    }
-
     fun render(
         context: GuiGraphics,
         x: Float,
         y: Float,
-        pokemon: Pokemon,
+        pokemon: PreviewPokemon,
         state: FloatingState,
-        health: Health,
-        isFainted: Boolean,
         hpText: String,
         highlightBall: Boolean = false,
-        showHeldItem: Boolean = false,
         partialTicks: Float
     ) {
         state.currentAspects = pokemon.aspects
         val matrixStack = context.pose()
+        val healthRatio = pokemon.healthRatio
 
         // Status effect
-        val status = pokemon.status?.status?.showdownName
-        if (health.ratio > 0F && status != null) {
+        val status = pokemon.status
+        if (healthRatio > 0F && status != null) {
             blitk(
                 matrixStack = matrixStack,
                 texture = cobblemonResource("textures/gui/interact/party_select_status_$status.png"),
@@ -87,7 +74,7 @@ object PokemonTileRenderer {
         // Poké Ball
         blitk(
             matrixStack = matrixStack,
-            texture = cobblemonResource("textures/gui/ball/${pokemon.caughtBall.name.path}.png"),
+            texture = cobblemonResource("textures/gui/ball/${pokemon.caughtBall.path}.png"),
             x = (x + 85) / SCALE,
             y = (y - 3) / SCALE,
             height = BALL_HEIGHT,
@@ -102,7 +89,7 @@ object PokemonTileRenderer {
         matrixStack.translate(x + TILE_WIDTH - (25 / 2.0) - 4, y - 1.0, 0.0)
         matrixStack.scale(2.5F, 2.5F, 1F)
         drawProfilePokemon(
-            species = pokemon.species.resourceIdentifier,
+            species = pokemon.species,
             matrixStack = matrixStack,
             rotation = Quaternionf().fromEulerXYZDegrees(Vector3f(13F, 35F, 0F)),
             state = state,
@@ -115,20 +102,17 @@ object PokemonTileRenderer {
         matrixStack.pushPose()
         matrixStack.translate(0.0, 0.0, 100.0)
 
-        if (showHeldItem) {
-            val heldItem = pokemon.heldItem()
-            if (!heldItem.isEmpty) {
-                renderScaledGuiItemIcon(
-                    matrixStack = matrixStack,
-                    itemStack = heldItem,
-                    x = x + 81.0,
-                    y = y + 11.0,
-                    scale = 0.5
-                )
-            }
+        if (!pokemon.heldItem.isEmpty) {
+            renderScaledGuiItemIcon(
+                matrixStack = matrixStack,
+                itemStack = pokemon.heldItem,
+                x = x + 81.0,
+                y = y + 11.0,
+                scale = 0.5
+            )
         }
 
-        val textOpacity = if (isFainted) 0.7F else 1F
+        val textOpacity = if (pokemon.isFainted) 0.7F else 1F
 
         // Level
         drawScaledText(
@@ -151,7 +135,7 @@ object PokemonTileRenderer {
         )
 
         // Name
-        val displayText = pokemon.getDisplayName().bold()
+        val displayText = pokemon.displayName.copy().bold()
         drawScaledText(
             context = context,
             font = CobblemonResources.DEFAULT_LARGE,
@@ -180,13 +164,13 @@ object PokemonTileRenderer {
         }
 
         // HP bar
-        val (red, green) = getDepletableRedGreen(health.ratio)
+        val (red, green) = getDepletableRedGreen(healthRatio)
         blitk(
             matrixStack = matrixStack,
             texture = CobblemonResources.WHITE,
             x = x + 1,
             y = y + 22,
-            width = (health.ratio * HP_BAR_MAX_WIDTH).toInt(),
+            width = (healthRatio * HP_BAR_MAX_WIDTH).toInt(),
             height = 1,
             red = red * 0.8F,
             green = green * 0.8F,
