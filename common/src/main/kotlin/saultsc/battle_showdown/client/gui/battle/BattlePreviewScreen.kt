@@ -1,9 +1,7 @@
 package saultsc.battle_showdown.client.gui.battle
 
 import com.cobblemon.mod.common.api.gui.blitk
-import com.cobblemon.mod.common.battles.ShowdownPokemon
 import com.cobblemon.mod.common.client.render.drawScaledText
-import com.cobblemon.mod.common.pokemon.Pokemon
 import com.cobblemon.mod.common.util.cobblemonResource
 import net.minecraft.ChatFormatting
 import net.minecraft.client.gui.GuiGraphics
@@ -11,7 +9,9 @@ import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
 import saultsc.battle_showdown.BattleShowdown
+import org.lwjgl.glfw.GLFW
 import saultsc.battle_showdown.battle.BattlePreviewManager
+import saultsc.battle_showdown.battle.PreviewPokemon
 import saultsc.battle_showdown.network.packets.c2s.PokemonSelectionPacket
 import saultsc.battle_showdown.network.packets.s2c.BattleTimerUpdatePacket
 import saultsc.battle_showdown.network.packets.s2c.BattleTimerUpdatePacket.TimerPhase
@@ -23,9 +23,9 @@ import java.util.UUID
  */
 class BattlePreviewScreen(
     private val battleId: UUID,
-    private val opponentTeam: List<Pair<ShowdownPokemon, Pokemon>>,
+    private val opponentTeam: List<PreviewPokemon>,
     private val opponentName: String,
-    private val playerTeam: List<Pair<ShowdownPokemon, Pokemon>>,
+    private val playerTeam: List<PreviewPokemon>,
     private val playerName: String
 ) : Screen(Component.translatable("${BattleShowdown.MOD_ID}.ui.battle_preview")) {
 
@@ -45,7 +45,14 @@ class BattlePreviewScreen(
     private var selectionTimeRemaining: Int = BattlePreviewManager.SELECTION_TIME_LIMIT
     private var preStartTimeRemaining: Int = BattlePreviewManager.PRE_START_TIME_LIMIT
     private var currentPhase: TimerPhase = TimerPhase.SELECTION
-    private var hasSelectedPokemon: Boolean = false
+    /** Index of the chosen lead. Kept here so it survives [init] being called again on resize. */
+    private var selectedIndex: Int? = null
+
+    private val hasSelectedPokemon: Boolean
+        get() = selectedIndex != null
+
+    private val canSelect: Boolean
+        get() = currentPhase == TimerPhase.SELECTION && !hasSelectedPokemon
 
     override fun shouldCloseOnEsc() = false
 
@@ -59,14 +66,20 @@ class BattlePreviewScreen(
         rivalTeamDisplay = RivalTeamDisplay(opponentTeam, ::getRivalSlotPosition)
         rivalTeamDisplay.init()
 
-        playerTeamSelector = PlayerTeamSelector(playerTeam, ::getPlayerSlotPosition, ::onPokemonSelected)
+        playerTeamSelector = PlayerTeamSelector(
+            playerTeam = playerTeam,
+            getSlotPosition = ::getPlayerSlotPosition,
+            selectedIndex = { selectedIndex },
+            canSelect = { canSelect },
+            onPokemonSelected = ::onPokemonSelected
+        )
         playerTeamSelector.init()
     }
 
-    private fun onPokemonSelected(selectedIndex: Int) {
-        if (currentPhase != TimerPhase.SELECTION || hasSelectedPokemon) return
-        hasSelectedPokemon = true
-        BattleShowdown.networkManager.sendToServer(PokemonSelectionPacket(battleId, selectedIndex))
+    private fun onPokemonSelected(index: Int) {
+        if (!canSelect) return
+        selectedIndex = index
+        BattleShowdown.networkManager.sendToServer(PokemonSelectionPacket(battleId, index))
     }
 
     fun updateTimer(timerUpdate: BattleTimerUpdatePacket) {
@@ -219,7 +232,7 @@ class BattlePreviewScreen(
     }
 
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        if (currentPhase == TimerPhase.SELECTION && !hasSelectedPokemon && playerTeamSelector.mouseClicked(mouseX, mouseY)) {
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && playerTeamSelector.mouseClicked(mouseX, mouseY)) {
             return true
         }
         return super.mouseClicked(mouseX, mouseY, button)
