@@ -1,4 +1,12 @@
 {
-  "text.autoconfig.battle_preview.title": "Cobblemon: Battle Showdown config",
-  "text.autoconfig.battle_preview.option.general": "General settings"
+  "battle_showdown.ui.battle_preview": "Battle Preview",
+  "battle_showdown.ui.party": "%s's Party",
+  "battle_showdown.ui.select_pokemon": "Select a Pokémon to start",
+  "battle_showdown.ui.waiting_for_rival": "Waiting for the rival",
+  "battle_showdown.ui.time_remaining": "Time remaining",
+  "battle_showdown.ui.starting_in": "Starting in",
+  "battle_showdown.preview.busy": "%s is already preparing another battle.",
+  "battle_showdown.preview.timeout.forfeit": "%s did not choose a Pokémon in time and forfeits the battle.",
+  "battle_showdown.preview.timeout.cancelled": "Battle cancelled: no Pokémon was chosen in time.",
+  "battle_showdown.preview.cancelled.disconnect": "Battle cancelled: %s disconnected."
 }

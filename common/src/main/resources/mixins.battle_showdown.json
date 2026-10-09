@@ -3,8 +3,11 @@
   "package": "saultsc.battle_showdown.mixin",
   "compatibilityLevel": "JAVA_21",
   "minVersion": "0.8",
-  "client": [],
-  "mixins": ["BattleAcceptMixin"],
+  "client": [
+  ],
+  "mixins": [
+    "ChallengeManagerMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }

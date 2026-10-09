@@ -1,0 +1,12 @@
+{
+  "battle_showdown.ui.battle_preview": "Vista previa del combate",
+  "battle_showdown.ui.party": "Equipo de %s",
+  "battle_showdown.ui.select_pokemon": "Selecciona un Pokémon para empezar",
+  "battle_showdown.ui.waiting_for_rival": "Esperando al rival",
+  "battle_showdown.ui.time_remaining": "Tiempo restante",
+  "battle_showdown.ui.starting_in": "Empieza en",
+  "battle_showdown.preview.busy": "%s ya está preparando otro combate.",
+  "battle_showdown.preview.timeout.forfeit": "%s no eligió un Pokémon a tiempo y pierde el combate.",
+  "battle_showdown.preview.timeout.cancelled": "Combate cancelado: nadie eligió un Pokémon a tiempo.",
+  "battle_showdown.preview.cancelled.disconnect": "Combate cancelado: %s se desconectó."
+}
