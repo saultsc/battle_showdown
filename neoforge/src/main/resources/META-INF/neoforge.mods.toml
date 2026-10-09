@@ -1,31 +1,38 @@
 modLoader = "kotlinforforge"
-loaderVersion = "[5.3,)"
+loaderVersion = "[5.10,)"
 issueTrackerURL = "https://github.com/saultsc/battle_showdown/issues"
 license = "MPL-2.0"
 
 [[mods]]
-modId = "battle_showdown"
+modId = "${mod_id}"
 version = "${version}"
 displayName = "Cobblemon: Battle Showdown"
-authors = "Accieo"
+authors = "saultsc"
 description = '''
-Pasture block can now be used as a utility block that gives Pokémon jobs!
+Adds a team preview before PvP battles: see your rival's team and pick your lead Pokémon.
 '''
-logoFile = "assets/battle_showdown/icon.png"
+logoFile = "assets/${mod_id}/icon.png"
 
-[[dependencies.battle_showdown]]
-modId = "neoforge"
+[[dependencies.${mod_id}]]
+modId = "minecraft"
 type = "required"
-versionRange = "[21.1,)"
+versionRange = "[1.21.1]"
 ordering = "NONE"
 side = "BOTH"
 
-[[dependencies.battle_showdown]]
-modId = "minecraft"
+[[dependencies.${mod_id}]]
+modId = "neoforge"
 type = "required"
-versionRange = "[1.21.1,)"
+versionRange = "[${neoforge_version},)"
 ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "cobblemon"
+type = "required"
+versionRange = "[1.8.1,1.9.0)"
+ordering = "AFTER"
 side = "BOTH"
 
 [[mixins]]
-config = "battle_showdown.mixins.json"
+config = "mixins.${mod_id}.json"

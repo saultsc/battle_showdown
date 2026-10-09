@@ -1,10 +1,10 @@
 package saultsc.battle_showdown.fabric.client
 
 import net.fabricmc.api.ClientModInitializer
+import saultsc.battle_showdown.fabric.network.FabricNetworkManager
 
-/**
- * Fabric client entrypoint.
- */
-object BattleShowdownFabricClient: ClientModInitializer {
-  override fun onInitializeClient() {}
+object BattleShowdownFabricClient : ClientModInitializer {
+    override fun onInitializeClient() {
+        FabricNetworkManager.registerClientHandlers()
+    }
 }
