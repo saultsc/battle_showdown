@@ -1,39 +1,53 @@
-# gradle
+**/.gradle
+**/build/**
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+**/run/**
 
-.gradle/
-build/
-out/
-classes/
+### Reference projects (local only) ###
+temp/
 
-# eclipse
-
-*.launch
-
-# idea
-
-.idea/
+### IntelliJ IDEA ###
+**/*.idea/*
+**/.idea/modules.xml
+**/.idea/jarRepositories.xml
+**/.idea/compiler.xml
+**/.idea/libraries/
+*.iws
 *.iml
 *.ipr
-*.iws
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
 
-# vscode
-
-.settings/
-.vscode/
-bin/
+### Eclipse ###
+.apt_generated
 .classpath
+.factorypath
 .project
+.settings
+.springBeans
+.sts4-cache
+*.launch
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
 
-# macos
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
 
-*.DS_Store
+### VS Code ###
+.vscode/
 
-# fabric
+### Mac OS ###
+.DS_Store
 
-run/
-
-# java
-
+### Java ###
 hs_err_*.log
 replay_*.log
 *.hprof
