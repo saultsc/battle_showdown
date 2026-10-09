@@ -1,0 +1,6 @@
+package saultsc.battle_showdown
+
+object BattleShowdownBuildDetails {
+    const val MOD_ID = "{{ modid }}"
+    const val VERSION = "{{ version }}"
+}
