@@ -1,3 +1,11 @@
+1.2.0
+- Added the Singles Preview and Doubles Preview formats to Cobblemon's challenge screen.
+- The preview only opens for those formats; normal battles start right away as in Cobblemon.
+- Pokémon are now picked in order: each pick shows its position and can be dropped again.
+- Doubles Preview is bring 6, pick 4, with the first 2 picks as leads.
+- Added a confirm button (Cobblemon styled); the selection is locked only after confirming.
+- Selection time is now 60 seconds; when it runs out the selection is completed with the team order instead of cancelling.
+
 1.1.0
 - Ported the team preview from the Fabric-only version to Fabric + NeoForge.
 - Updated to Cobblemon 1.8.1, Kotlin 2.2.20, Fabric Loader 0.17.2 and NeoForge 21.1.182.

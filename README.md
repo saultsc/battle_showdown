@@ -7,18 +7,22 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.2.20-purple.svg)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-MPL--2.0-blue.svg)](https://mozilla.org/MPL/2.0/)
 
-A Cobblemon addon that adds a **team preview** to PvP battles: before the battle starts, both players see each other's team and choose their lead Pokémon.
+A Cobblemon addon that adds **team preview formats** to PvP battles: before the battle starts, both players see each other's team and choose which Pokémon they bring and in which order.
 
 ## ✨ Features
 
-- **Team preview screen**: your team on the left, your rival's team on the right.
-- **Lead selection**: click a Pokémon to send it out first.
-- **Timers**: 30 seconds to choose, then a 5 second countdown before the battle starts.
-- **Timeout**: if a player does not choose in time, the battle is cancelled. It is also cancelled if a player disconnects or dies.
+- **Two new battle formats** in Cobblemon's challenge screen, right after the normal Singles and Doubles:
+  - **Singles Preview**: you bring your whole team and choose its order. The first Pokémon you pick leads.
+  - **Doubles Preview** (VGC style): bring 6, pick 4. The first 2 you pick lead, the other 2 stay in the back.
+- **Ordered selection**: click your Pokémon in the order you want them. Each picked Pokémon shows its position (#1, #2, …); click one again to drop it.
+- **Confirm button**: the selection is only locked when you confirm it.
+- **Timers**: 60 seconds to choose, then a 5 second countdown. If the time runs out, the missing picks are filled in with your team order and the battle starts anyway.
 - **Hidden information**: the rival only receives what the preview shows (species, level, HP, status). Moves, IVs, EVs, nature, ability and held item stay hidden.
-- **Level-adjusted formats**: the preview shows the levels and HP the battle will actually use.
+- **Level-adjusted battles**: the preview shows the levels and HP the battle will actually use.
+- **Safe cancelling**: the preview is cancelled if a player disconnects or dies.
 - **Multiplatform**: Fabric and NeoForge from a single codebase.
-- Currently enabled for **singles** battles only.
+
+The normal Cobblemon battles (Singles, Doubles, Triples, Multi, Royal) are untouched and start without a preview.
 
 ## 📋 Requirements
 
