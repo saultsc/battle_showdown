@@ -85,6 +85,7 @@ tasks {
         dependsOn(shadowJar)
         inputFile.set(shadowJar.flatMap { it.archiveFile })
         archiveBaseName.set("${rootProject.property("archives_base_name")}-${project.name}")
-        archiveVersion.set("${rootProject.version}")
+        archiveVersion.set("${rootProject.version}+${rootProject.property("minecraft_version")}")
+        destinationDirectory.set(rootProject.layout.buildDirectory.dir("libs"))
     }
 }

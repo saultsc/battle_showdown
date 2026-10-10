@@ -46,3 +46,14 @@ allprojects {
     }
 }
 
+// The root project has no code of its own: its build/libs only collects the platform jars
+tasks {
+    jar {
+        enabled = false
+    }
+
+    named("sourcesJar") {
+        enabled = false
+    }
+}
+

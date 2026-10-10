@@ -45,7 +45,7 @@ The mod must be installed on **both** the server and the clients.
 ## 🔧 Building
 
 ```bash
-# Build every platform (jars end up in fabric/build/libs and neoforge/build/libs)
+# Build every platform (jars end up in build/libs)
 ./gradlew build
 
 # Run a development client
