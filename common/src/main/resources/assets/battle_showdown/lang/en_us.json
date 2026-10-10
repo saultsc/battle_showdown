@@ -1,13 +1,12 @@
 {
-  "battle_showdown.ui.battle_preview": "Battle Preview",
+  "battle_showdown.format.singles_preview": "Singles Preview",
+  "battle_showdown.format.doubles_preview": "Doubles Preview",
   "battle_showdown.ui.party": "%s's Party",
-  "battle_showdown.ui.select_pokemon": "Select a Pokémon to start",
+  "battle_showdown.ui.confirm": "Confirm",
   "battle_showdown.ui.waiting_for_rival": "Waiting for the rival",
   "battle_showdown.ui.time_remaining": "Time remaining",
   "battle_showdown.ui.starting_in": "Starting in",
   "battle_showdown.preview.busy": "%s is already preparing another battle.",
-  "battle_showdown.preview.timeout.not_chosen": "Battle cancelled: %s did not choose a Pokémon in time.",
-  "battle_showdown.preview.timeout.cancelled": "Battle cancelled: no Pokémon was chosen in time.",
   "battle_showdown.preview.cancelled.disconnect": "Battle cancelled: %s disconnected.",
   "battle_showdown.preview.cancelled.death": "Battle cancelled: %s died."
 }

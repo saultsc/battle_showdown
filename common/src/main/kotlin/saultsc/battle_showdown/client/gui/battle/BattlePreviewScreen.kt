@@ -8,26 +8,31 @@ import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
-import saultsc.battle_showdown.BattleShowdown
 import org.lwjgl.glfw.GLFW
+import saultsc.battle_showdown.BattleShowdown
 import saultsc.battle_showdown.battle.BattlePreviewManager
+import saultsc.battle_showdown.battle.PreviewFormat
 import saultsc.battle_showdown.battle.PreviewPokemon
-import saultsc.battle_showdown.network.packets.c2s.PokemonSelectionPacket
+import saultsc.battle_showdown.battle.TeamSelection
+import saultsc.battle_showdown.network.packets.c2s.TeamSelectionPacket
 import saultsc.battle_showdown.network.packets.s2c.BattleTimerUpdatePacket
 import saultsc.battle_showdown.network.packets.s2c.BattleTimerUpdatePacket.TimerPhase
 import java.util.UUID
 
 /**
  * Team preview shown to both players before a PvP battle starts.
- * The player's team is on the left and can be clicked to pick a lead, the rival's team is on the right.
+ *
+ * The player's team is on the left: clicking Pokémon picks them in order, and each picked one shows its position.
+ * The rival's team is on the right. The selection is locked with the confirm button.
  */
 class BattlePreviewScreen(
     private val battleId: UUID,
+    private val format: PreviewFormat,
     private val opponentTeam: List<PreviewPokemon>,
     private val opponentName: String,
     private val playerTeam: List<PreviewPokemon>,
     private val playerName: String
-) : Screen(Component.translatable("${BattleShowdown.MOD_ID}.ui.battle_preview")) {
+) : Screen(Component.translatable(format.translationKey)) {
 
     companion object {
         const val SLOT_HORIZONTAL_SPACING = 4F
@@ -40,19 +45,25 @@ class BattlePreviewScreen(
 
     private lateinit var rivalTeamDisplay: RivalTeamDisplay
     private lateinit var playerTeamSelector: PlayerTeamSelector
+    private lateinit var confirmButton: ConfirmButton
     private var backgroundY: Int = 0
 
-    private var selectionTimeRemaining: Int = BattlePreviewManager.SELECTION_TIME_LIMIT
+    private var selectionTimeRemaining: Int = format.selectionSeconds
     private var preStartTimeRemaining: Int = BattlePreviewManager.PRE_START_TIME_LIMIT
     private var currentPhase: TimerPhase = TimerPhase.SELECTION
-    /** Index of the chosen lead. Kept here so it survives [init] being called again on resize. */
-    private var selectedIndex: Int? = null
 
-    private val hasSelectedPokemon: Boolean
-        get() = selectedIndex != null
+    private val selectable: List<Boolean> = playerTeam.map { !it.isFainted }
+    private val maxSelections: Int = TeamSelection.maxSelections(format, selectable)
 
-    private val canSelect: Boolean
-        get() = currentPhase == TimerPhase.SELECTION && !hasSelectedPokemon
+    /** Team indices in the order they were picked. Kept here so it survives [init] being called again on resize. */
+    private val selectedOrder = mutableListOf<Int>()
+    private var confirmed: Boolean = false
+
+    private val canEdit: Boolean
+        get() = currentPhase == TimerPhase.SELECTION && !confirmed
+
+    private val canPickMore: Boolean
+        get() = selectedOrder.size < maxSelections
 
     override fun shouldCloseOnEsc() = false
 
@@ -69,17 +80,47 @@ class BattlePreviewScreen(
         playerTeamSelector = PlayerTeamSelector(
             playerTeam = playerTeam,
             getSlotPosition = ::getPlayerSlotPosition,
-            selectedIndex = { selectedIndex },
-            canSelect = { canSelect },
-            onPokemonSelected = ::onPokemonSelected
+            selectedOrder = { selectedOrder },
+            leadCount = format.leadCount,
+            canEdit = { canEdit },
+            canPickMore = { canPickMore },
+            dimUnselected = { format.bringsOnlySelected && !(canEdit && canPickMore) },
+            onToggle = ::onPokemonToggled
         )
         playerTeamSelector.init()
+
+        confirmButton = addRenderableWidget(
+            ConfirmButton(
+                x = (width - ConfirmButton.WIDTH) / 2,
+                y = backgroundY + BACKGROUND_HEIGHT + 4,
+                text = Component.translatable("${BattleShowdown.MOD_ID}.ui.confirm")
+            ) { onConfirm() }
+        )
+        updateConfirmButton()
     }
 
-    private fun onPokemonSelected(index: Int) {
-        if (!canSelect) return
-        selectedIndex = index
-        BattleShowdown.networkManager.sendToServer(PokemonSelectionPacket(battleId, index))
+    private fun onPokemonToggled(index: Int) {
+        if (!canEdit) return
+        if (!selectedOrder.remove(index)) {
+            if (!canPickMore || !selectable[index]) return
+            selectedOrder.add(index)
+        }
+        sendSelection()
+    }
+
+    private fun onConfirm() {
+        if (!canEdit || !TeamSelection.canConfirm(selectedOrder, selectable, format)) return
+        confirmed = true
+        sendSelection()
+    }
+
+    private fun sendSelection() {
+        BattleShowdown.networkManager.sendToServer(TeamSelectionPacket(battleId, selectedOrder.toList(), confirmed))
+    }
+
+    private fun updateConfirmButton() {
+        confirmButton.visible = canEdit
+        confirmButton.active = canEdit && TeamSelection.canConfirm(selectedOrder, selectable, format)
     }
 
     fun updateTimer(timerUpdate: BattleTimerUpdatePacket) {
@@ -88,6 +129,14 @@ class BattlePreviewScreen(
         selectionTimeRemaining = timerUpdate.selectionTimeRemaining
         preStartTimeRemaining = timerUpdate.preStartTimeRemaining
         currentPhase = timerUpdate.phase
+
+        // The time ran out before confirming: show the team the server completed for us.
+        if (currentPhase == TimerPhase.PRE_START && !confirmed) {
+            val completed = TeamSelection.resolveOrder(selectedOrder, selectable, format)
+            selectedOrder.clear()
+            selectedOrder.addAll(completed.filter { selectable[it] })
+            confirmed = true
+        }
 
         if (currentPhase == TimerPhase.FINISHED) {
             onClose()
@@ -132,6 +181,7 @@ class BattlePreviewScreen(
     }
 
     override fun render(context: GuiGraphics, mouseX: Int, mouseY: Int, delta: Float) {
+        updateConfirmButton()
         super.render(context, mouseX, mouseY, delta)
         val matrixStack = context.pose()
 
@@ -143,6 +193,8 @@ class BattlePreviewScreen(
             width = width,
             height = BACKGROUND_HEIGHT
         )
+
+        renderCenteredText(context, Component.translatable(format.translationKey).withStyle(ChatFormatting.GOLD), backgroundY + 5F)
 
         // Player team (left)
         renderTeamTitle(context, Component.translatable("${BattleShowdown.MOD_ID}.ui.party", playerName), playerTeamStartX, playerTeamWidth)
@@ -161,7 +213,7 @@ class BattlePreviewScreen(
         playerTeamSelector.render(context, mouseX, mouseY, delta)
         rivalTeamDisplay.render(context, delta)
 
-        renderTimer(context)
+        renderStatus(context)
     }
 
     private fun renderTeamTitle(context: GuiGraphics, title: MutableComponent, teamStartX: Float, teamWidth: Float) {
@@ -187,16 +239,18 @@ class BattlePreviewScreen(
         )
     }
 
-    private fun renderTimer(context: GuiGraphics) {
+    /** Instruction line inside the panel and the timer below the confirm button. */
+    private fun renderStatus(context: GuiGraphics) {
         val instructionY = backgroundY + 138F
-        val timerDisplayY = instructionY + 25F
+        val timerDisplayY = backgroundY + BACKGROUND_HEIGHT + ConfirmButton.HEIGHT + 8F
 
         when (currentPhase) {
             TimerPhase.SELECTION -> {
-                val instructionText = if (hasSelectedPokemon) {
+                val instructionText = if (confirmed) {
                     Component.translatable("${BattleShowdown.MOD_ID}.ui.waiting_for_rival").withStyle(ChatFormatting.YELLOW)
                 } else {
-                    Component.translatable("${BattleShowdown.MOD_ID}.ui.select_pokemon").withStyle(ChatFormatting.WHITE)
+                    Component.literal("${selectedOrder.size}/$maxSelections")
+                        .withStyle(ChatFormatting.WHITE)
                 }
                 renderCenteredText(context, instructionText, instructionY)
 

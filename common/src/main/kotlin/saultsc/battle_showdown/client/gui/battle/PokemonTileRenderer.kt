@@ -32,6 +32,8 @@ object PokemonTileRenderer {
     private const val BALL_WIDTH = 18
     private const val BALL_HEIGHT = 22
     private const val HP_BAR_MAX_WIDTH = 90
+    private const val ORDER_BADGE_X = 40
+    private const val ORDER_BADGE_COLOUR = 0xFFD95A
 
     val tileTexture = cobblemonResource("textures/gui/battle/party_select.png")
     val tileDisabledTexture = cobblemonResource("textures/gui/battle/party_select_disabled.png")
@@ -44,6 +46,7 @@ object PokemonTileRenderer {
         state: FloatingState,
         hpText: String,
         highlightBall: Boolean = false,
+        orderBadge: Int? = null,
         partialTicks: Float
     ) {
         state.currentAspects = pokemon.aspects
@@ -133,6 +136,19 @@ object PokemonTileRenderer {
             opacity = textOpacity,
             shadow = true
         )
+
+        // Position in the pick order
+        if (orderBadge != null) {
+            drawScaledText(
+                context = context,
+                font = CobblemonResources.DEFAULT_LARGE,
+                text = "#$orderBadge".text().bold(),
+                x = x + ORDER_BADGE_X,
+                y = y + 4,
+                colour = ORDER_BADGE_COLOUR,
+                shadow = true
+            )
+        }
 
         // Name
         val displayText = pokemon.displayName.copy().bold()

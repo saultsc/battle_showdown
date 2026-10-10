@@ -13,6 +13,7 @@ object BattleShowdownClient {
         Minecraft.getInstance().setScreen(
             BattlePreviewScreen(
                 battleId = packet.battleId,
+                format = packet.format,
                 opponentTeam = packet.opponentTeam,
                 opponentName = packet.opponentName,
                 playerTeam = packet.playerTeam,

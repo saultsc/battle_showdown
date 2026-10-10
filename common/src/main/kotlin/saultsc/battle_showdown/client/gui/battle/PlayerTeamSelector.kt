@@ -9,16 +9,25 @@ import net.minecraft.client.resources.sounds.SimpleSoundInstance
 import saultsc.battle_showdown.battle.PreviewPokemon
 
 /**
- * The player's own team. Clicking a non fainted tile selects it as the lead Pokémon.
+ * The player's own team. Clicking a tile picks that Pokémon (or drops it again). Tiles stay in their slot
+ * and the picked ones show their position in the pick order.
  *
- * The selection lives in the screen ([selectedIndex]) so it survives the selector being rebuilt on resize.
+ * The selection itself lives in the screen ([selectedOrder]) so it survives the selector being rebuilt on resize.
+ *
+ * @param leadCount how many of the first picked Pokémon are sent out first.
+ * @param canEdit false once the selection is locked.
+ * @param canPickMore false when the selection is full.
+ * @param dimUnselected true when the Pokémon that are not picked will not take part in the battle.
  */
 class PlayerTeamSelector(
     private val playerTeam: List<PreviewPokemon>,
     private val getSlotPosition: (Int) -> Pair<Float, Float>,
-    private val selectedIndex: () -> Int?,
-    private val canSelect: () -> Boolean,
-    private val onPokemonSelected: (Int) -> Unit
+    private val selectedOrder: () -> List<Int>,
+    private val leadCount: Int,
+    private val canEdit: () -> Boolean,
+    private val canPickMore: () -> Boolean,
+    private val dimUnselected: () -> Boolean,
+    private val onToggle: (Int) -> Unit
 ) {
     private val tiles = mutableListOf<PlayerTeamTile>()
 
@@ -35,9 +44,8 @@ class PlayerTeamSelector(
     }
 
     fun mouseClicked(mouseX: Double, mouseY: Double): Boolean {
-        if (!canSelect()) return false
-        val clickedTile = tiles.find { it.isHovered(mouseX, mouseY) && !it.pokemon.isFainted } ?: return false
-        onPokemonSelected(clickedTile.index)
+        val clickedTile = tiles.find { it.isHovered(mouseX, mouseY) && it.isClickable } ?: return false
+        onToggle(clickedTile.index)
         Minecraft.getInstance().soundManager.play(SimpleSoundInstance.forUI(CobblemonSounds.GUI_CLICK, 1.0F))
         return true
     }
@@ -57,21 +65,31 @@ class PlayerTeamSelector(
 
         private val state = FloatingState()
 
+        /** Position in the pick order, or -1 when not picked. */
+        private val pickPosition: Int
+            get() = selector.selectedOrder().indexOf(index)
+
+        /** Picked Pokémon can be dropped, the others can be picked while there is room. */
+        val isClickable: Boolean
+            get() = selector.canEdit() && (pickPosition >= 0 || (!pokemon.isFainted && selector.canPickMore()))
+
         fun isHovered(mouseX: Double, mouseY: Double) =
             mouseX in x.toDouble()..(x + TILE_WIDTH).toDouble() && mouseY in y.toDouble()..(y + TILE_HEIGHT).toDouble()
 
         fun render(context: GuiGraphics, mouseX: Double, mouseY: Double, deltaTicks: Float) {
-            val isSelected = selector.selectedIndex() == index
-            val isHighlighted = selector.canSelect() && !pokemon.isFainted && isHovered(mouseX, mouseY)
+            val pickPosition = pickPosition
+            val isPicked = pickPosition >= 0
+            val isDisabled = pokemon.isFainted || (!isPicked && selector.dimUnselected())
+            val isHighlighted = isPicked || (isClickable && isHovered(mouseX, mouseY))
 
             blitk(
                 matrixStack = context.pose(),
-                texture = if (!pokemon.isFainted && !isSelected) PokemonTileRenderer.tileTexture else tileDisabledTexture,
+                texture = if (isDisabled) tileDisabledTexture else PokemonTileRenderer.tileTexture,
                 x = x,
                 y = y,
                 width = TILE_WIDTH,
                 height = TILE_HEIGHT,
-                vOffset = if (pokemon.isFainted || isHighlighted) 0 else TILE_HEIGHT,
+                vOffset = if (pokemon.isFainted || (!isDisabled && isHighlighted)) 0 else TILE_HEIGHT,
                 textureHeight = TILE_HEIGHT * 2
             )
 
@@ -82,7 +100,8 @@ class PlayerTeamSelector(
                 pokemon = pokemon,
                 state = state,
                 hpText = "${pokemon.currentHealth}/${pokemon.maxHealth}",
-                highlightBall = isSelected,
+                highlightBall = pickPosition in 0 until selector.leadCount,
+                orderBadge = if (isPicked) pickPosition + 1 else null,
                 partialTicks = deltaTicks
             )
         }
