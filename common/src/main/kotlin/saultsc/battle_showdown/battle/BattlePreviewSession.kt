@@ -9,19 +9,22 @@ import java.util.UUID
 
 /**
  * A pending PvP battle where both players are looking at the team preview.
+ *
+ * @param battleFormat the format the battle will be started with (without the preview marker rule).
  */
 class BattlePreviewSession(
     val battleId: UUID,
+    val previewFormat: PreviewFormat,
     val battleFormat: BattleFormat,
     val sides: List<PreviewSide>
 ) {
     var phase: TimerPhase = TimerPhase.SELECTION
-    var selectionTimeRemaining: Int = BattlePreviewManager.SELECTION_TIME_LIMIT
+    var selectionTimeRemaining: Int = previewFormat.selectionSeconds
     var preStartTimeRemaining: Int = BattlePreviewManager.PRE_START_TIME_LIMIT
     var ticksUntilNextSecond: Int = BattlePreviewManager.TICKS_PER_SECOND
 
-    val allSelected: Boolean
-        get() = sides.all { it.selection != null }
+    val allConfirmed: Boolean
+        get() = sides.all { it.confirmed }
 
     fun sideOf(playerId: UUID): PreviewSide? = sides.firstOrNull { it.playerId == playerId }
 
@@ -42,14 +45,16 @@ class PreviewSide(
     val team: List<Pokemon>,
     val partyIds: List<UUID>
 ) {
-    var selection: UUID? = null
+    /** Team indices in the order the player picked them. May be incomplete until the battle starts. */
+    var selection: List<Int> = emptyList()
+    var confirmed: Boolean = false
+
+    /** One entry per team member: true when it can be picked. */
+    val selectable: List<Boolean> = team.map { !it.isFainted() }
 
     /** The current online player, or null if they left. */
     val player: ServerPlayer?
         get() = playerId.getPlayer()
-
-    val hasSelectablePokemon: Boolean
-        get() = team.any { !it.isFainted() }
 
     fun previewTeam(revealHeldItems: Boolean): List<PreviewPokemon> = team.map { PreviewPokemon.of(it, revealHeldItems) }
 }

@@ -1,9 +1,9 @@
 package saultsc.battle_showdown.battle
 
 import com.cobblemon.mod.common.Cobblemon
+import com.cobblemon.mod.common.api.storage.party.PartyStore
 import com.cobblemon.mod.common.api.text.red
 import com.cobblemon.mod.common.battles.BattleBuilder
-import com.cobblemon.mod.common.battles.BattleTypes
 import com.cobblemon.mod.common.battles.ChallengeManager
 import com.cobblemon.mod.common.platform.events.PlatformEvents
 import net.minecraft.network.chat.Component
@@ -21,7 +21,6 @@ import java.util.UUID
  * Everything here runs on the server thread: timers are driven by the server tick.
  */
 object BattlePreviewManager {
-    const val SELECTION_TIME_LIMIT = 30
     const val PRE_START_TIME_LIMIT = 5
     const val TICKS_PER_SECOND = 20
 
@@ -37,11 +36,14 @@ object BattlePreviewManager {
     /**
      * Called when a challenge is accepted.
      *
+     * Only challenges sent with one of the [PreviewFormat]s go through the preview, every other battle is left to Cobblemon.
+     *
      * @return true if the team preview takes over the challenge and Cobblemon must not start the battle itself.
      */
     fun onChallengeAccepted(challenge: ChallengeManager.BattleChallenge): Boolean {
         if (challenge !is ChallengeManager.SinglesBattleChallenge) return false
-        if (!challenge.battleFormat.battleType.name.equals(BattleTypes.SINGLES.name, ignoreCase = true)) return false
+        val previewFormat = PreviewFormats.of(challenge.battleFormat) ?: return false
+        val battleFormat = PreviewFormats.strip(challenge.battleFormat)
 
         val players = listOf(challenge.sender, challenge.receiver)
 
@@ -57,15 +59,19 @@ object BattlePreviewManager {
             PreviewSide(
                 playerId = player.uuid,
                 playerName = player.name.string,
-                team = BattleUtils.getPreviewTeam(party, challenge.battleFormat),
+                team = BattleUtils.getPreviewTeam(party, battleFormat),
                 partyIds = party.map { it.uuid }
             )
         }
 
-        // Nothing to pick from: let Cobblemon start the battle so it reports its own error right away.
-        if (sides.any { !it.hasSelectablePokemon }) return false
+        // Not enough Pokémon to pick the leads: let Cobblemon start the battle so it reports its own error right away.
+        // The marker rule has to go first, Showdown does not know it.
+        if (sides.any { side -> side.selectable.count { it } < previewFormat.leadCount }) {
+            challenge.battleFormat.ruleSet = battleFormat.ruleSet
+            return false
+        }
 
-        val session = BattlePreviewSession(UUID.randomUUID(), challenge.battleFormat, sides)
+        val session = BattlePreviewSession(UUID.randomUUID(), previewFormat, battleFormat, sides)
         sessions[session.battleId] = session
 
         val (senderSide, receiverSide) = sides
@@ -74,20 +80,25 @@ object BattlePreviewManager {
         return true
     }
 
-    fun handlePokemonSelection(battleId: UUID, player: ServerPlayer, selectedIndex: Int) {
+    /**
+     * Stores the player's current selection. Once [confirmed] the side is locked, and the battle countdown
+     * starts when both players have confirmed.
+     */
+    fun handleTeamSelection(battleId: UUID, player: ServerPlayer, selectedIndices: List<Int>, confirmed: Boolean) {
         val session = sessions[battleId] ?: return
         if (session.phase != TimerPhase.SELECTION) return
 
         val side = session.sideOf(player.uuid) ?: return
-        if (side.selection != null) return
+        if (side.confirmed) return
+        if (!TeamSelection.isValid(selectedIndices, side.selectable, session.previewFormat)) return
 
-        val pokemon = side.team.getOrNull(selectedIndex) ?: return
-        if (pokemon.isFainted()) return
+        side.selection = selectedIndices
 
-        side.selection = side.partyIds[selectedIndex]
-
-        if (session.allSelected) {
-            enterPreStart(session)
+        if (confirmed && TeamSelection.canConfirm(selectedIndices, side.selectable, session.previewFormat)) {
+            side.confirmed = true
+            if (session.allConfirmed) {
+                enterPreStart(session)
+            }
         }
     }
 
@@ -99,6 +110,7 @@ object BattlePreviewManager {
             player,
             BattlePreviewPacket(
                 battleId = session.battleId,
+                format = session.previewFormat,
                 playerTeam = side.previewTeam(revealHeldItems = true),
                 playerName = side.playerName,
                 opponentTeam = opponent.previewTeam(revealHeldItems = false),
@@ -147,17 +159,12 @@ object BattlePreviewManager {
     }
 
     /**
-     * The battle is cancelled when someone did not pick a lead in time.
+     * Out of time: whoever did not confirm is locked with what they had picked so far.
+     * The missing picks are filled in with the team order when the battle starts.
      */
     private fun handleSelectionTimeout(session: BattlePreviewSession) {
-        val notSelected = session.sides.filter { it.selection == null }
-        val message = if (notSelected.size == 1) {
-            Component.translatable("${BattleShowdown.MOD_ID}.preview.timeout.not_chosen", notSelected.first().playerName)
-        } else {
-            Component.translatable("${BattleShowdown.MOD_ID}.preview.timeout.cancelled")
-        }
-        notifyAll(session, message.red())
-        finish(session)
+        session.sides.forEach { it.confirmed = true }
+        enterPreStart(session)
     }
 
     private fun startBattle(session: BattlePreviewSession) {
@@ -172,15 +179,31 @@ object BattlePreviewManager {
             return
         }
 
+        val battleParties: Map<UUID, PartyStore> = mapOf(
+            player1.uuid to battleParty(session, side1, player1),
+            player2.uuid to battleParty(session, side2, player2)
+        )
+
         BattleBuilder.pvp1v1(
-            player1,
-            player2,
-            side1.selection,
-            side2.selection,
-            session.battleFormat
+            player1 = player1,
+            player2 = player2,
+            battleFormat = session.battleFormat,
+            partyAccessor = { player -> battleParties.getValue(player.uuid) }
         ).ifErrored { error ->
             listOf(player1, player2).forEach { player -> error.sendTo(player) { it.red() } }
         }
+    }
+
+    /**
+     * The Pokémon that enter the battle for [side], in battle order. They are looked up in the real party
+     * so a Pokémon that left the party during the preview is simply skipped.
+     */
+    private fun battleParty(session: BattlePreviewSession, side: PreviewSide, player: ServerPlayer): PartyStore {
+        val party = Cobblemon.storage.getParty(player).toList()
+        val ordered = TeamSelection.resolveOrder(side.selection, side.selectable, session.previewFormat)
+            .map { side.partyIds[it] }
+            .mapNotNull { id -> party.firstOrNull { it.uuid == id } }
+        return OrderedPartyView(player.uuid, ordered)
     }
 
     private fun cancelSessionsOf(player: ServerPlayer, messageKey: String) {

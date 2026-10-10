@@ -4,7 +4,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.server.level.ServerPlayer
-import saultsc.battle_showdown.network.packets.c2s.PokemonSelectionPacket
+import saultsc.battle_showdown.network.packets.c2s.TeamSelectionPacket
 import saultsc.battle_showdown.network.packets.s2c.BattlePreviewPacket
 import saultsc.battle_showdown.network.packets.s2c.BattleTimerUpdatePacket
 
@@ -31,6 +31,6 @@ object BattleShowdownNetwork {
     fun register(registrar: PacketRegistrar) {
         registrar.clientbound(BattlePreviewPacket.TYPE, BattlePreviewPacket.CODEC)
         registrar.clientbound(BattleTimerUpdatePacket.TYPE, BattleTimerUpdatePacket.CODEC)
-        registrar.serverbound(PokemonSelectionPacket.TYPE, PokemonSelectionPacket.CODEC)
+        registrar.serverbound(TeamSelectionPacket.TYPE, TeamSelectionPacket.CODEC)
     }
 }

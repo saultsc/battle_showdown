@@ -4,6 +4,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import saultsc.battle_showdown.BattleShowdown
+import saultsc.battle_showdown.battle.PreviewFormat
 import saultsc.battle_showdown.battle.PreviewPokemon
 import saultsc.battle_showdown.client.BattleShowdownClient
 import saultsc.battle_showdown.network.ClientboundPacket
@@ -14,6 +15,7 @@ import java.util.UUID
  */
 data class BattlePreviewPacket(
     val battleId: UUID,
+    val format: PreviewFormat,
     val playerTeam: List<PreviewPokemon>,
     val playerName: String,
     val opponentTeam: List<PreviewPokemon>,
@@ -31,6 +33,7 @@ data class BattlePreviewPacket(
 
         private fun write(buf: RegistryFriendlyByteBuf, packet: BattlePreviewPacket) {
             buf.writeUUID(packet.battleId)
+            buf.writeEnum(packet.format)
             writeTeam(buf, packet.playerTeam)
             buf.writeUtf(packet.playerName)
             writeTeam(buf, packet.opponentTeam)
@@ -39,6 +42,7 @@ data class BattlePreviewPacket(
 
         private fun read(buf: RegistryFriendlyByteBuf): BattlePreviewPacket = BattlePreviewPacket(
             battleId = buf.readUUID(),
+            format = buf.readEnum(PreviewFormat::class.java),
             playerTeam = readTeam(buf),
             playerName = buf.readUtf(),
             opponentTeam = readTeam(buf),
