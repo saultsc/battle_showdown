@@ -22,6 +22,8 @@ loom {
 dependencies {
     // Mixin support
     compileOnly("net.fabricmc:sponge-mixin:0.16.3+mixin.0.8.7")
+    // Only for the @Environment annotations on Cobblemon's client classes, which javac needs to read them.
+    compileOnly("net.fabricmc:fabric-loader:${property("fabric_loader_version")}")
 
     minecraft("com.mojang:minecraft:${property("minecraft_version")}")
     mappings(loom.officialMojangMappings())
@@ -29,6 +31,7 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:${property("junit_version")}")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${property("junit_version")}")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:${property("junit_platform_version")}")
 }
 
 tasks.test {
